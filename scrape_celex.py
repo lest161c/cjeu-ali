@@ -4,8 +4,8 @@ import re
 import json
 from tqdm import tqdm  # Import tqdm for progress indication
 
-#total_pages = 1282
-total_pages = 3
+total_pages = 776
+#total_pages = 3
 celex_ids = []
 
 # Define the pattern to match CELEX IDs
@@ -14,7 +14,12 @@ pattern = r'CELEX:(.*?)(?=[\'"]|$)'
 # Use tqdm to create a progress bar for the loop
 for page_number in tqdm(range(1, total_pages + 1), desc="Scraping pages"):
     # Construct the URL for the current page
-    url = f"https://curia.europa.eu/juris/documents.jsf?nat=or&mat=or&pcs=Oor&jur=C%2CT&for=&jge=&dates=&language=en&pro=&cit=none%252CC%252CCJ%252CR%252C2008E%252C%252C%252C%252C%252C%252C%252C%252C%252C%252Ctrue%252Cfalse%252Cfalse&oqp=&td=%3B%3B%3BPUB1%3BNPUB1%3B%3B%3BORDALL&avg=&lgrec=en&page={page_number}&lg=&cid=5749683#"
+    # The URL contains filters for the documents. The following filters are used:
+    # Court = "Court of Justice, General Court"
+    # Case number = C-
+    # Documents = Documents published in the ECR : Judgments
+    # Documents not published in the ECR : Judgments  
+    url = f"https://curia.europa.eu/juris/documents.jsf?nat=or&mat=or&pcs=Oor&jur=C%2CT&num=C-&for=&jge=&dates=&language=en&pro=&cit=none%252CC%252CCJ%252CR%252C2008E%252C%252C%252C%252C%252C%252C%252C%252C%252C%252Ctrue%252Cfalse%252Cfalse&oqp=&td=%3B%3B%3BPUB1%3BNPUB1%3B%3B%3BORDALL&avg=&lgrec=en&page={page_number}&lg=&cid=8661620"
     
     # Send a GET request to the URL
     response = requests.get(url)

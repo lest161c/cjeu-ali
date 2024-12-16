@@ -1,6 +1,6 @@
 # Artificial Intelligence Legal Interpreter
 
-The **Artificial Intelligence Legal Interpreter** is an innovative project aimed at fine-tuning a large language model (LLM) to predict judicial interpretations in response to legal questions derived from preliminary rulings by the Court of Justice of the European Union (CJEU). This tool is designed to assist legal professionals by providing predictive, context-aware insights into judicial reasoning, revolutionizing legal research and decision-making.
+The **Artificial Intelligence Legal Interpreter** is a project aimed at fine-tuning a large language model (LLM) to predict judicial interpretations in response to legal questions derived from preliminary rulings by the Court of Justice of the European Union (CJEU). This tool is designed to assist legal professionals by providing predictive, context-aware insights into judicial reasoning, thereby contributing to legal research and decision-making.
 
 ---
 
@@ -16,6 +16,7 @@ Legal professionals face numerous challenges when navigating complex judicial ru
 ### Key Features
 - **Curated Dataset**: Data sourced from EURLEX and CURIA.
 - **Metadata Enrichment**: Case details, decision years, and references for structured insights.
+- **RAG Legal Document Access**: Proper citing of legal documents when answering.
 - **Model Evaluation**: Benchmarked for alignment with CJEU rulings, citation accuracy, and interpretive correctness.
 
 ---
@@ -49,23 +50,17 @@ The repository is organized as follows:
 ### Prerequisites
 - Python 3.8+
 - Pipenv or virtualenv for dependency management
-- Basic understanding of Python and legal document structures
 
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/ai-legal-interpreter.git
-   cd ai-legal-interpreter
+   git clone https://github.com/lest161c/cjeu.ali.git
+   cd cjeu-ali
    ```
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Set up the necessary data directory structure:
-   ```bash
-   mkdir -p data HTMLs
-   ```
-
 ---
 
 ## Usage

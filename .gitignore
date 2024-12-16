@@ -2,4 +2,5 @@ HTMLs/*
 .vscode/*
 __pycache__/*
 */.egg-info/
+*.pyc
 !HTMLs/.gitkeep 

@@ -28,19 +28,39 @@ The repository is organized as follows:
 ```
 .
 ├── data
-│   └── celex_ids.json          # Contains CELEX identifiers for scraping and processing
-├── HTMLs                       # Directory for raw HTML documents
-├── LICENSE                     # License file
+│   ├── celex_ids.json
+│   ├── celex_mapping.json
+│   ├── sample_celex_mapping.json
+│   └── sample_docs.json
+├── HTMLs
 ├── preprocessing
-│   └── filter_docs.py          # Script to filter and preprocess documents
-├── README.md                   # Project documentation
+│   └── filter_docs.py
+├── responses.json
 ├── scripts
-│   ├── preprocessing           # Scripts for preprocessing data
-│   └── scraping                # Scripts for scraping data
-│       ├── count_things.py     # Script to count occurrences in data
-│       └── scrape_celex.py     # Script for scraping CELEX data
-├── src                         # Source code for the project
-└── tests                       # Test scripts
+│   ├── dataset
+│   │   └── prepare_eurlex_dataset.py
+│   ├── __init__.py
+│   ├── preprocessing
+│   │   └── __init__.py
+│   └── scraping
+│       ├── count_things.py
+│       └── scrape_celex.py
+├── setup.py
+├── src
+│   ├── custom_loss.py
+│   ├── __init__.py
+│   ├── rag
+│   │   ├── data
+│   │   ├── ingest_openai.py
+│   │   ├── ingest.py
+│   │   ├── model_openai.py
+│   │   ├── model.py
+│   │   └── vectorstore
+│   └── train
+│       └── config
+└── tests
+    ├── __init__.py
+    └── test_loss.py
 ```
 
 ---

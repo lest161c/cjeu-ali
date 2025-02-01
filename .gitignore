@@ -9,3 +9,7 @@ __pycache__/*
 !data/.gitkeep
 !filtered_doc/.gitkeep
 .env
+deepseek-tuning/data/*
+deepseek-tuning/models/*
+!deepseek-tuning/data/.gitkeep
+!deepseek-tuning/models/.gitkeep

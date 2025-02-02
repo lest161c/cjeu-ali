@@ -6,7 +6,9 @@ The **Artificial Intelligence Legal Interpreter** is a project aimed at fine-tun
 
 ## Motivation
 
-Legal professionals face numerous challenges when navigating complex judicial rulings. This project seeks to address those challenges by:
+In many fields, e.g. labour law, consumer law or intellectual property and data law, national law in member states of the European Union is broadly based on European Law. In practice national law in those harmonised fields must be interpreted in line with the interpretation of the underlying EU Law by the European Court of Justice. Legal professionals can face numerous challenges when interpreting the legal terms on the basis of the various and complex CJEU Judgements.
+
+This project seeks to address those challenges by:
 
 - **Extracting question-answer pairs** from CJEU rulings.
 - **Structuring data** into machine-readable formats enriched with metadata such as decision years and case references.
@@ -148,6 +150,7 @@ This project is licensed under the [MIT License](LICENSE).
 - Expand the dataset with rulings from additional jurisdictions.
 - Enhance interpretive accuracy with human-in-the-loop training.
 - Integrate with legal research tools for real-time predictions.
+- Examine alignment of national legal practice (decisions, implementing laws etc.) with CJEU interpretation 
 
 ---
 

@@ -87,14 +87,49 @@ def set_custom_prompt():
     return retrieval_qa_chat_prompt
 
 # Load Embeddings and Vectorstore
-def load_vectorstore(device: str = 'cpu'):
-    """Load FAISS vectorstore using OpenAI Embeddings."""
-    embeddings = HuggingFaceEmbeddings(
-        model_name='BAAI/bge-large-en-v1.5', 
-        model_kwargs={'device': device}
-    )
-    db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
-    return db
+
+def load_vectorstore():
+    """
+    Load FAISS vectorstore using Hugging Face Embeddings.
+    Automatically detects and uses available device.
+    
+    Returns:
+        FAISS: Loaded vector store
+    """
+    try:
+        # Determine the best available device
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        # Print device information for debugging
+        print(f"Using device for embeddings: {device}")
+        
+        # Create embeddings with device-aware configuration
+        embeddings = HuggingFaceEmbeddings(
+            model_name='BAAI/bge-large-en-v1.5',
+            model_kwargs={
+                'device': device,
+                # Additional optimization parameters
+                'trust_remote_code': True,
+                'low_cpu_mem_usage': True,
+            },
+            encode_kwargs={
+                'normalize_embeddings': True,  # Recommended for BGE models
+                'batch_size': 32,  # Adjust based on your GPU memory
+            }
+        )
+        
+        # Load the vector store
+        db = FAISS.load_local(
+            DB_FAISS_PATH, 
+            embeddings, 
+            allow_dangerous_deserialization=True
+        )
+        
+        return db
+    
+    except Exception as e:
+        print(f"Error loading vector store: {e}")
+        raise ValueError(f"Failed to load vector store: {e}")
 
 # Retrieval QA Chain
 def retrieval_qa_chain(llm, prompt, db):
@@ -105,10 +140,8 @@ def retrieval_qa_chain(llm, prompt, db):
 
 # QA Bot Function
 def qa_bot():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    llm = create_huggingface_endpoint("meta-llama/Llama-3.2-1B-Instruct")
-    db = load_vectorstore(device)
+    llm = create_huggingface_endpoint("deepseek-ai/DeepSeek-R1-Distill-Llama-70B")
+    db = load_vectorstore()
     qa_prompt = set_custom_prompt()
     qa_chain = retrieval_qa_chain(llm, qa_prompt, db)
     return qa_chain
@@ -124,13 +157,38 @@ def serialize_document(doc):
 # Chainlit Chat Handlers
 @cl.on_chat_start
 async def start():
-    runnable = qa_bot()
-    msg = cl.Message(content="Starting the bot...")
+    msg = cl.Message(content="Initializing RAG Bot... Please wait.")
     await msg.send()
-    msg.content = "Hi, Welcome to RAG Bot. What is your query?"
-    await msg.update()
 
-    cl.user_session.set("runnable", runnable)
+    try:
+        # Notify the user that model loading has started
+        msg.content = "Loading the language model... This may take a few minutes."
+        await msg.update()
+
+        # Initialize the model asynchronously
+        llm = await cl.make_async(create_huggingface_endpoint)(
+            "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+        )
+
+        msg.content = "Loading the vector database..."
+        await msg.update()
+        db = await cl.make_async(load_vectorstore)()
+
+        msg.content = "Configuring the retrieval chain..."
+        await msg.update()
+        qa_prompt = set_custom_prompt()
+        qa_chain = retrieval_qa_chain(llm, qa_prompt, db)
+
+        # Update the message when everything is ready
+        msg.content = "Hi, Welcome to RAG Bot! What is your query?"
+        await msg.update()
+
+        cl.user_session.set("runnable", qa_chain)
+
+    except Exception as e:
+        msg.content = f"Error initializing bot: {e}"
+        await msg.update()
+
 
 @cl.on_message
 async def main(message: cl.Message):

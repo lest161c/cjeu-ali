@@ -13,7 +13,8 @@ from typing import Optional, Union, Dict, Any
 import os
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+from langchain_huggingface import HuggingFacePipeline
+from transformers import pipeline
 
 import chainlit as cl
 from langchain import hub
@@ -23,32 +24,58 @@ DB_FAISS_PATH = 'vectorstore/db_faiss'
 
 def create_huggingface_endpoint(
     model_name: str,
-) -> HuggingFaceEndpoint:
+    max_new_tokens: int = 1024,
+    temperature: float = 0.7,
+    repetition_penalty: float = 1.2
+) -> HuggingFacePipeline:
     """
-    Create a configurable Hugging Face endpoint.
+    Create a local Hugging Face pipeline endpoint for LangChain.
     
     Args:
         model_name (str): The name of the Hugging Face model to load.
-    Returns:
-        HuggingFaceEndpoint: Configured model endpoint
-    """
+        max_new_tokens (int, optional): Maximum number of tokens to generate. Defaults to 1024.
+        temperature (float, optional): Sampling temperature. Defaults to 0.7.
+        repetition_penalty (float, optional): Penalty for repeated tokens. Defaults to 1.2.
     
-    # Create endpoint
+    Returns:
+        HuggingFacePipeline: Configured model pipeline
+    """
     try:
-        endpoint = HuggingFaceEndpoint(
-            max_new_tokens=1024,
-            repo_id=model_name,
-            temperature=0.7,
-            # Add timeout and streaming parameters
-            timeout=120,  # Increase timeout to 120 seconds
-            repetition_penalty=1.2,
-            streaming=True,
+        # Determine device
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        # Load model and tokenizer
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, 
+            torch_dtype=torch.float16,  # Use float16 for memory efficiency
+            device_map="auto",  # Automatically distribute across available GPUs
+            low_cpu_mem_usage=True
         )
+        
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        
+        # Create pipeline
+        pipe = pipeline(
+            "text-generation", 
+            model=model, 
+            tokenizer=tokenizer,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            repetition_penalty=repetition_penalty,
+            do_sample=True,
+            top_k=50,
+            top_p=0.95,
+            device=device
+        )
+        
+        # Convert to HuggingFacePipeline
+        llm = HuggingFacePipeline(pipeline=pipe)
+        
+        return llm
     
     except Exception as e:
-        raise ValueError(f"Error creating Hugging Face endpoint: {e}")
-    
-    return endpoint
+        print(f"Error creating Hugging Face endpoint: {e}")
+        raise ValueError(f"Failed to load model {model_name}: {e}")
 
 def set_custom_prompt():
     """

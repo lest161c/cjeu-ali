@@ -41,15 +41,17 @@ def create_huggingface_endpoint(
         HuggingFacePipeline: Configured model pipeline
     """
     try:
-        # Determine device
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Verify CUDA availability
+        print(f"CUDA Available: {torch.cuda.is_available()}")
+        if torch.cuda.is_available():
+            print(f"CUDA Device Name: {torch.cuda.get_device_name(0)}")
         
-        # Load model and tokenizer
+        # Load model and tokenizer with accelerate-friendly settings
         model = AutoModelForCausalLM.from_pretrained(
             model_name, 
             torch_dtype=torch.float16,  # Use float16 for memory efficiency
-            device_map="auto",  # Automatically distribute across available GPUs
-            low_cpu_mem_usage=True
+            low_cpu_mem_usage=True,     # Reduce CPU memory usage
+            # No explicit device_map needed with accelerate
         )
         
         tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -65,7 +67,6 @@ def create_huggingface_endpoint(
             do_sample=True,
             top_k=50,
             top_p=0.95,
-            device=device
         )
         
         # Convert to HuggingFacePipeline

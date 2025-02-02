@@ -1,6 +1,11 @@
 HTMLs/*
+filtered_doc/*
+data/*
 .vscode/*
 __pycache__/*
 */.egg-info/
 *.pyc
 !HTMLs/.gitkeep 
+!data/.gitkeep
+!filtered_doc/.gitkeep
+.env

@@ -1,27 +1,38 @@
 import os
 import argparse
+import torch
+import chainlit as cl
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from typing import cast
 from langchain.schema.runnable import Runnable
 from langchain.schema.runnable.config import RunnableConfig
 from langchain.schema import Document
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
 from langchain_huggingface import HuggingFacePipeline
-from transformers import pipeline
-import chainlit as cl
 from langchain import hub
 
-# Constants
 DB_FAISS_PATH = 'vectorstore/db_faiss'
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Configurable RAG Bot")
+
+    # Model Configuration
+    parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+                        help="Hugging Face model name")
+    parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature")
+    parser.add_argument("--max_new_tokens", type=int, default=1024, help="Max tokens for text generation")
+    parser.add_argument("--quantization", type=str, choices=["4bit", "8bit"], default="4bit", help="Quantization level")
+    parser.add_argument("--repetition_penalty", type=float, default=1.2, help="Penalty for repetition")
+    parser.add_argument("--do_sample", type=bool, default=True, help="Enable sampling")
+    parser.add_argument("--top_k", type=int, default=50, help="Top-K sampling")
+    parser.add_argument("--top_p", type=float, default=0.95, help="Top-P sampling")
+
+    return parser.parse_args()
+
 def create_huggingface_endpoint(args) -> HuggingFacePipeline:
-    """
-    Load a Hugging Face model with configurable settings via argparse.
-    """
+    """Load a Hugging Face model with configurable settings."""
     try:
         print(f"CUDA Available: {torch.cuda.is_available()}")
         quant_config = None
@@ -61,11 +72,9 @@ def create_huggingface_endpoint(args) -> HuggingFacePipeline:
         print(f"Error loading model: {e}")
         raise ValueError(f"Failed to load model {args.model_name}: {e}")
 
-
 def set_custom_prompt():
     """Create a prompt template for QA retrieval."""
     return hub.pull("langchain-ai/retrieval-qa-chat")
-
 
 def load_vectorstore():
     """Load FAISS vectorstore using Hugging Face Embeddings."""
@@ -90,12 +99,10 @@ def load_vectorstore():
         print(f"Error loading vector store: {e}")
         raise ValueError(f"Failed to load vector store: {e}")
 
-
 def retrieval_qa_chain(llm, prompt, db):
     retriever = db.as_retriever(search_kwargs={'k': 1})
     qa_chain = create_stuff_documents_chain(llm, prompt)
     return create_retrieval_chain(retriever, qa_chain)
-
 
 @cl.on_chat_start
 async def start():
@@ -103,19 +110,13 @@ async def start():
     await msg.send()
 
     try:
-        msg.content = "Loading the language model... This may take a few minutes."
+        msg.content = "Loading configuration..."
         await msg.update()
 
-        args = argparse.Namespace(
-            model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-            temperature=0.7,
-            max_new_tokens=1024,
-            quantization="4bit",
-            repetition_penalty=1.2,
-            do_sample=True,
-            top_k=50,
-            top_p=0.95
-        )
+        args = parse_args()
+
+        msg.content = "Loading the language model... This may take a few minutes."
+        await msg.update()
 
         llm = await cl.make_async(create_huggingface_endpoint)(args)
         msg.content = "Loading the vector database..."
@@ -134,7 +135,6 @@ async def start():
     except Exception as e:
         msg.content = f"Error initializing bot: {e}"
         await msg.update()
-
 
 @cl.on_message
 async def main(message: cl.Message):

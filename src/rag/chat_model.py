@@ -1,76 +1,89 @@
 import os
 import argparse
-import torch
-import chainlit as cl
+import yaml
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from typing import cast
 from langchain.schema.runnable import Runnable
 from langchain.schema.runnable.config import RunnableConfig
 from langchain.schema import Document
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from langchain_huggingface import HuggingFacePipeline
+from transformers import pipeline
+import chainlit as cl
 from langchain import hub
 
+# Constants
 DB_FAISS_PATH = 'vectorstore/db_faiss'
+DEFAULT_CONFIG_PATH = "chainlit.yaml"
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Configurable RAG Bot")
-
-    # Model Configuration
-    parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-                        help="Hugging Face model name")
-    parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature")
-    parser.add_argument("--max_new_tokens", type=int, default=1024, help="Max tokens for text generation")
-    parser.add_argument("--quantization", type=str, choices=["4bit", "8bit"], default="4bit", help="Quantization level")
-    parser.add_argument("--repetition_penalty", type=float, default=1.2, help="Penalty for repetition")
-    parser.add_argument("--do_sample", type=bool, default=True, help="Enable sampling")
-    parser.add_argument("--top_k", type=int, default=50, help="Top-K sampling")
-    parser.add_argument("--top_p", type=float, default=0.95, help="Top-P sampling")
-
-    return parser.parse_args()
+def load_config(config_path=DEFAULT_CONFIG_PATH):
+    """Load configuration from YAML file, or use defaults if not found."""
+    default_config = {
+        "model_name": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "temperature": 0.7,
+        "max_new_tokens": 1024,
+        "quantization": "4bit",
+        "repetition_penalty": 1.2,
+        "do_sample": True,
+        "top_k": 50,
+        "top_p": 0.95
+    }
+    
+    if os.path.exists(config_path):
+        with open(config_path, "r") as file:
+            user_config = yaml.safe_load(file)
+        print(f"Loaded configuration from {config_path}")
+        return {**default_config, **user_config}  # Merge user config with defaults
+    else:
+        print("Using default configuration.")
+        return default_config
 
 def create_huggingface_endpoint(args) -> HuggingFacePipeline:
-    """Load a Hugging Face model with configurable settings."""
+    """
+    Load a Hugging Face model with configurable settings via YAML.
+    """
     try:
         print(f"CUDA Available: {torch.cuda.is_available()}")
         quant_config = None
 
-        if args.quantization == "4bit":
+        if args["quantization"] == "4bit":
             quant_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_compute_dtype=torch.float16
             )
-        elif args.quantization == "8bit":
+        elif args["quantization"] == "8bit":
             quant_config = BitsAndBytesConfig(load_in_8bit=True)
 
         model = AutoModelForCausalLM.from_pretrained(
-            args.model_name,
+            args["model_name"],
             quantization_config=quant_config,
             device_map="auto"
         )
 
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+        tokenizer = AutoTokenizer.from_pretrained(args["model_name"])
 
         pipe = pipeline(
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=args.max_new_tokens,
-            temperature=args.temperature,
-            repetition_penalty=args.repetition_penalty,
-            do_sample=args.do_sample,
-            top_k=args.top_k,
-            top_p=args.top_p,
+            max_new_tokens=args["max_new_tokens"],
+            temperature=args["temperature"],
+            repetition_penalty=args["repetition_penalty"],
+            do_sample=args["do_sample"],
+            top_k=args["top_k"],
+            top_p=args["top_p"],
         )
 
         return HuggingFacePipeline(pipeline=pipe)
     except Exception as e:
         print(f"Error loading model: {e}")
-        raise ValueError(f"Failed to load model {args.model_name}: {e}")
+        raise ValueError(f"Failed to load model {args['model_name']}: {e}")
 
 def set_custom_prompt():
     """Create a prompt template for QA retrieval."""
@@ -112,13 +125,13 @@ async def start():
     try:
         msg.content = "Loading configuration..."
         await msg.update()
-
-        args = parse_args()
+        args = load_config()
+        print(f"Using configuration: {args}")
 
         msg.content = "Loading the language model... This may take a few minutes."
         await msg.update()
-
         llm = await cl.make_async(create_huggingface_endpoint)(args)
+
         msg.content = "Loading the vector database..."
         await msg.update()
         db = await cl.make_async(load_vectorstore)()

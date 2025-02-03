@@ -1,0 +1,8 @@
+model_name: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+temperature: 0.7
+max_new_tokens: 1024
+quantization: "4bit"  # Options: "4bit", "8bit"
+repetition_penalty: 1.2
+do_sample: true
+top_k: 50
+top_p: 0.95

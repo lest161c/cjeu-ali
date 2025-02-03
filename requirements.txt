@@ -1,5 +1,13 @@
 axolotl
 faiss
+
 chainlit
+langchain
+langchain_huggingface
+langchain_community
+langchain_openai
+transformers
+torch
+
 
 

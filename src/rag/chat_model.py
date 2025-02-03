@@ -1,5 +1,4 @@
 import os
-import argparse
 import yaml
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings

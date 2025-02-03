@@ -43,56 +43,64 @@ def load_config(config_path=DEFAULT_CONFIG_PATH):
 
 def create_huggingface_endpoint(args) -> HuggingFacePipeline:
     """
-    Load a Hugging Face model with configurable settings via YAML.
+    Load a Hugging Face model with configurable settings, ensuring CPU fallback.
     """
     try:
-        print(f"CUDA Available: {torch.cuda.is_available()}")
-        quant_config = None
+        use_cpu = not torch.cuda.is_available()  # Detect if GPU is available
 
-        if args["quantization"] == "4bit":
+        quant_config = None
+        if args.quantization == "4bit" and not use_cpu:
             quant_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_compute_dtype=torch.float16
             )
-        elif args["quantization"] == "8bit":
+        elif args.quantization == "8bit" and not use_cpu:
             quant_config = BitsAndBytesConfig(load_in_8bit=True)
 
+        # Force model to CPU if no GPU is available
+        device_map = "auto" if not use_cpu else {"": "cpu"}
+
         model = AutoModelForCausalLM.from_pretrained(
-            args["model_name"],
-            quantization_config=quant_config,
-            device_map="auto"
+            args.model_name,
+            quantization_config=quant_config if not use_cpu else None,
+            device_map=device_map
         )
 
-        tokenizer = AutoTokenizer.from_pretrained(args["model_name"])
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
         pipe = pipeline(
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=args["max_new_tokens"],
-            temperature=args["temperature"],
-            repetition_penalty=args["repetition_penalty"],
-            do_sample=args["do_sample"],
-            top_k=args["top_k"],
-            top_p=args["top_p"],
+            max_new_tokens=args.max_new_tokens,
+            temperature=args.temperature,
+            repetition_penalty=args.repetition_penalty,
+            do_sample=args.do_sample,
+            top_k=args.top_k,
+            top_p=args.top_p,
+            device=-1 if use_cpu else 0  # Use CPU if no GPU available
         )
 
         return HuggingFacePipeline(pipeline=pipe)
+
     except Exception as e:
         print(f"Error loading model: {e}")
-        raise ValueError(f"Failed to load model {args['model_name']}: {e}")
+        raise ValueError(f"Failed to load model {args.model_name}: {e}")
 
 def set_custom_prompt():
     """Create a prompt template for QA retrieval."""
     return hub.pull("langchain-ai/retrieval-qa-chat")
 
 def load_vectorstore():
-    """Load FAISS vectorstore using Hugging Face Embeddings."""
+    """Load FAISS vectorstore using Hugging Face Embeddings, ensuring CPU fallback."""
     try:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        use_cpu = not torch.cuda.is_available()
+        device = "cpu" if use_cpu else "cuda"
+
         print(f"Using device for embeddings: {device}")
+
         embeddings = HuggingFaceEmbeddings(
             model_name='BAAI/bge-large-en-v1.5',
             model_kwargs={
@@ -105,7 +113,13 @@ def load_vectorstore():
                 'batch_size': 32,
             }
         )
-        db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
+
+        db = FAISS.load_local(
+            DB_FAISS_PATH, 
+            embeddings, 
+            allow_dangerous_deserialization=True
+        )
+
         return db
     except Exception as e:
         print(f"Error loading vector store: {e}")

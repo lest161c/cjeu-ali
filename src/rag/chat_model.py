@@ -1,9 +1,5 @@
 import os
 import yaml
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from typing import cast
 from langchain.schema.runnable import Runnable
 from langchain.schema.runnable.config import RunnableConfig
@@ -14,6 +10,7 @@ from langchain_huggingface import HuggingFacePipeline
 from transformers import pipeline
 import chainlit as cl
 from langchain import hub
+from src.rag.retriever import load_vectorstore, retrieval_qa_chain
 
 # Constants
 DB_FAISS_PATH = 'vectorstore/db_faiss'
@@ -92,42 +89,6 @@ def set_custom_prompt():
     """Create a prompt template for QA retrieval."""
     return hub.pull("langchain-ai/retrieval-qa-chat")
 
-def load_vectorstore():
-    """Load FAISS vectorstore using Hugging Face Embeddings, ensuring CPU fallback."""
-    try:
-        use_cpu = not torch.cuda.is_available()
-        device = "cpu" if use_cpu else "cuda"
-
-        print(f"Using device for embeddings: {device}")
-
-        embeddings = HuggingFaceEmbeddings(
-            model_name='BAAI/bge-large-en-v1.5',
-            model_kwargs={
-                'device': device,
-                'trust_remote_code': True,
-            },
-            encode_kwargs={
-                'normalize_embeddings': True,
-                'batch_size': 32,
-            }
-        )
-
-        db = FAISS.load_local(
-            DB_FAISS_PATH, 
-            embeddings, 
-            allow_dangerous_deserialization=True
-        )
-
-        return db
-    except Exception as e:
-        print(f"Error loading vector store: {e}")
-        raise ValueError(f"Failed to load vector store: {e}")
-
-def retrieval_qa_chain(llm, prompt, db):
-    retriever = db.as_retriever(search_kwargs={'k': 1})
-    qa_chain = create_stuff_documents_chain(llm, prompt)
-    return create_retrieval_chain(retriever, qa_chain)
-
 @cl.on_chat_start
 async def start():
     msg = cl.Message(content="Initializing RAG Bot... Please wait.")
@@ -145,7 +106,7 @@ async def start():
 
         msg.content = "Loading the vector database..."
         await msg.update()
-        db = await cl.make_async(load_vectorstore)()
+        db = await cl.make_async(load_vectorstore)(args)
 
         msg.content = "Configuring the retrieval chain..."
         await msg.update()

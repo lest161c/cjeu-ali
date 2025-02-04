@@ -2,11 +2,7 @@ import os
 import json
 import argparse
 from tqdm import tqdm
-from langchain.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.documents import Document
-from langchain_core.runnables import chain
-from typing import List
+from src.rag.retriever import load_vectorstore, retrieve_related_documents
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Enrich dataset using RAG.")
@@ -19,34 +15,6 @@ def parse_args():
     parser.add_argument("--use_similarity_threshold", action="store_true", help="Use similarity threshold instead of top K.")
     parser.add_argument("--progress_file", type=str, default='progress.json', help="Path to progress tracking file.")
     return parser.parse_args()
-
-@chain
-def retriever(vectorstore, query: str, k : int = None) -> List[Document]:
-    """
-    Retrieve relevant documents for a given query.
-    
-    Args:
-        query (str): The query to retrieve documents for.
-    
-    Returns:
-        List[Document]: List of relevant documents.
-    """
-    docs = []
-    if k is not None:
-        docs, scores = zip(*vectorstore.similarity_search_with_relevance_scores(query, k=k))
-        for doc, score in zip(docs, scores):
-            doc.metadata["score"] = score
-    else: 
-        docs, scores = zip(*vectorstore.similarity_search_with_score(query))
-        for doc, score in zip(docs, scores):
-            doc.metadata["score"] = score
-
-    return docs
-
-def load_vectorstore(args):
-    embeddings = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5', model_kwargs={'device': 'cuda'})
-    db = FAISS.load_local(args.db_faiss_path, embeddings)
-    return db
 
 def load_dataset(input_path):
     with open(input_path, 'r', encoding='utf-8') as f:
@@ -62,18 +30,8 @@ def load_progress(progress_file):
             return json.load(f).get("last_processed_id", -1)
     return -1
 
-def retrieve_related_documents(db, question, args):
-    if args.use_similarity_threshold:
-        #docs = retriever.get_relevant_documents(question)
-        docs = retriever.invoke(db, query=question)
-        # print all the similiarity scores
-        print([doc.metadata.get('score', 0) for doc in docs])
-        return [doc for doc in docs if doc.metadata.get('score', 0) >= args.similarity_threshold]
-    else:
-        docs = retriever.invoke(db, query=question, k=args.top_k)
-
 def process_dataset(args):
-    db = load_vectorstore(args)
+    db = load_vectorstore({"db_faiss_path": args.db_faiss_path, "model_name": "BAAI/bge-large-en-v1.5"})
     dataset = load_dataset(args.input_dataset)
     last_processed_id = load_progress(args.progress_file)
     
@@ -83,7 +41,10 @@ def process_dataset(args):
             question = item["question"]
             answer = item.get("answer", "")
             
-            related_docs = retrieve_related_documents(db, question, args)
+            search_kwargs = {"top_k": args.top_k,
+                             "use_similarity_threshold": args.use_similarity_threshold,
+                             "similarity_threshold": args.similarity_threshold}
+            related_docs = retrieve_related_documents(db, question, search_kwargs)
             related_texts = "\n".join([f"{idx+1}: {doc.page_content}" for idx, doc in enumerate(related_docs)])
             
             enriched_question = f"Question: {question}\n\nRelated Documents:\n{related_texts}"

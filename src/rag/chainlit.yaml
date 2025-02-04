@@ -4,5 +4,8 @@ max_new_tokens: 1024
 quantization: "4bit"  # Options: "4bit", "8bit"
 repetition_penalty: 1.2
 do_sample: true
+use_similarity_score: true
+similarity_threshold: 0.8
+db_faiss_path: "vectorstore/db_faiss/"
 top_k: 50
 top_p: 0.95

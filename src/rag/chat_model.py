@@ -106,7 +106,6 @@ def load_vectorstore():
             model_kwargs={
                 'device': device,
                 'trust_remote_code': True,
-                'low_cpu_mem_usage': True,
             },
             encode_kwargs={
                 'normalize_embeddings': True,
@@ -165,6 +164,11 @@ async def start():
 @cl.on_message
 async def main(message: cl.Message):
     runnable = cast(Runnable, cl.user_session.get("runnable"))
+
+    if runnable is None:
+        await message.reply("Error: RAG Bot is not initialized properly. Please restart.")
+        return
+
     msg = cl.Message(content="")
     text_elements = []
 
@@ -193,5 +197,5 @@ async def main(message: cl.Message):
         source_names = [text_el.name for text_el in text_elements]
         msg.content += f"\nSources: {', '.join(source_names)}"
         msg.elements = text_elements
-    
+
     await msg.send()

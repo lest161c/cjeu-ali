@@ -49,37 +49,37 @@ def create_huggingface_endpoint(args) -> HuggingFacePipeline:
         use_cpu = not torch.cuda.is_available()  # Detect if GPU is available
 
         quant_config = None
-        if args.quantization == "4bit" and not use_cpu:
+        if args["quantization"] == "4bit" and not use_cpu:
             quant_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_compute_dtype=torch.float16
             )
-        elif args.quantization == "8bit" and not use_cpu:
+        elif args["quantization"] == "8bit" and not use_cpu:
             quant_config = BitsAndBytesConfig(load_in_8bit=True)
 
         # Force model to CPU if no GPU is available
         device_map = "auto" if not use_cpu else {"": "cpu"}
 
         model = AutoModelForCausalLM.from_pretrained(
-            args.model_name,
+            args["model_name"],
             quantization_config=quant_config if not use_cpu else None,
             device_map=device_map
         )
 
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+        tokenizer = AutoTokenizer.from_pretrained(args["model_name"])
 
         pipe = pipeline(
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=args.max_new_tokens,
-            temperature=args.temperature,
-            repetition_penalty=args.repetition_penalty,
-            do_sample=args.do_sample,
-            top_k=args.top_k,
-            top_p=args.top_p,
+            max_new_tokens=args["max_new_tokens"],
+            temperature=args["temperature"],
+            repetition_penalty=args["repetition_penalty"],
+            do_sample=args["do_sample"],
+            top_k=args["top_k"],
+            top_p=args["top_p"],
             device=-1 if use_cpu else 0  # Use CPU if no GPU available
         )
 
@@ -87,7 +87,7 @@ def create_huggingface_endpoint(args) -> HuggingFacePipeline:
 
     except Exception as e:
         print(f"Error loading model: {e}")
-        raise ValueError(f"Failed to load model {args.model_name}: {e}")
+        raise ValueError(f"Failed to load model {args["model_name"]}: {e}")
 
 def set_custom_prompt():
     """Create a prompt template for QA retrieval."""

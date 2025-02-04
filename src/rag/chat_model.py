@@ -80,7 +80,6 @@ def create_huggingface_endpoint(args) -> HuggingFacePipeline:
             do_sample=args["do_sample"],
             top_k=args["top_k"],
             top_p=args["top_p"],
-            device=-1 if use_cpu else 0  # Use CPU if no GPU available
         )
 
         return HuggingFacePipeline(pipeline=pipe)

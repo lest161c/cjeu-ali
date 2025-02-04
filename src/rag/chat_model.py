@@ -7,6 +7,7 @@ from langchain.schema import Document
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from langchain_huggingface import HuggingFacePipeline
+from langchain_core.prompts import PromptTemplate
 from transformers import pipeline
 import chainlit as cl
 from langchain import hub
@@ -87,11 +88,14 @@ def create_huggingface_endpoint(args) -> HuggingFacePipeline:
 
 def set_custom_prompt():
     """Create a prompt template for QA retrieval."""
-    return (
+    return PromptTemplate(
+        template=(
         "Act as a Legal Expert and answer the legal question based on relevant EU and national legal sources. "
         "Answer the following question. If the sources are relevant to the question, refer to them in your response. Otherwise, disregard them. "
         "{context} \n"
         "Provide a clear and precise answer, ensuring alignment with EU law as interpreted by the CJEU."
+        ),
+        input_variables=["context"]
     )
 
 @cl.on_chat_start

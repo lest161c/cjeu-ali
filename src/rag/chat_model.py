@@ -92,10 +92,12 @@ def set_custom_prompt():
         template=(
         "Act as a Legal Expert and answer the legal question based on relevant EU and national legal sources. "
         "Answer the following question. If the sources are relevant to the question, refer to them in your response. Otherwise, disregard them. "
+        "Question: {input}\n"
+        "Related Documents:\n"
         "{context} \n"
         "Provide a clear and precise answer, ensuring alignment with EU law as interpreted by the CJEU."
         ),
-        input_variables=["context"]
+        input_variables=["context", "input"]
     )
 
 @cl.on_chat_start

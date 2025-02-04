@@ -87,7 +87,7 @@ def create_huggingface_endpoint(args) -> HuggingFacePipeline:
 
     except Exception as e:
         print(f"Error loading model: {e}")
-        raise ValueError(f"Failed to load model {args["model_name"]}: {e}")
+        raise ValueError(f"Failed to load model {args['model_name']}: {e}")
 
 def set_custom_prompt():
     """Create a prompt template for QA retrieval."""

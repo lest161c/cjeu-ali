@@ -1,3 +1,4 @@
+embedding_model_name: "BAAI/bge-large-en-v1.5"
 model_name: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
 temperature: 0.7
 max_new_tokens: 1024

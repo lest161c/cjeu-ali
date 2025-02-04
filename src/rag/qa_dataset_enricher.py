@@ -31,7 +31,7 @@ def load_progress(progress_file):
     return -1
 
 def process_dataset(args):
-    db = load_vectorstore({"db_faiss_path": args.db_faiss_path, "model_name": "BAAI/bge-large-en-v1.5"})
+    db = load_vectorstore({"db_faiss_path": args.db_faiss_path, "embedding_model_name": "BAAI/bge-large-en-v1.5"})
     dataset = load_dataset(args.input_dataset)
     last_processed_id = load_progress(args.progress_file)
     

@@ -50,7 +50,7 @@ def load_vectorstore(args):
         print(f"Using device for embeddings: {device}")
 
         embeddings = HuggingFaceEmbeddings(
-            model_name=args["model_name"],
+            model_name=args["embedding_model_name"],
             model_kwargs={
                 'device': device,
                 'trust_remote_code': True,

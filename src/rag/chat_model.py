@@ -10,7 +10,7 @@ from langchain_huggingface import HuggingFacePipeline
 from transformers import pipeline
 import chainlit as cl
 from langchain import hub
-from src.rag.retriever import load_vectorstore, retrieval_qa_chain
+from retriever import load_vectorstore, retrieval_qa_chain
 
 # Constants
 DB_FAISS_PATH = 'vectorstore/db_faiss'

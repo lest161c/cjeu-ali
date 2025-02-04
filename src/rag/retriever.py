@@ -6,6 +6,7 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_core.runnables import chain
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from pydantic import BaseModel
 from typing import List, Dict, Any
 
 @chain
@@ -34,9 +35,12 @@ def retriever(inputs: Dict[str, Any]) -> List[Document]:
 
     return docs
 
-class SimilarityScoreVectorStoreRetriever(BaseRetriever):
-    def __init__(self, vectorstore):
-        self.vectorstore = vectorstore
+class SimilarityScoreVectorStoreRetriever(BaseRetriever, BaseModel):
+    vectorstore: Any
+    k: int = None
+
+    class Config:
+        arbitrary_types_allowed = True  # Allow arbitrary types for fields
 
     def _get_relevant_documents(self, query: str, k: int = None) -> List[Document]:
         if k is not None:
@@ -52,7 +56,7 @@ class SimilarityScoreVectorStoreRetriever(BaseRetriever):
 def retrieval_qa_chain(llm, prompt, db):
     qa_chain = create_stuff_documents_chain(llm, prompt)
 
-    retriever = SimilarityScoreVectorStoreRetriever(db)
+    retriever = SimilarityScoreVectorStoreRetriever(vectorstore=db)
 
     return create_retrieval_chain(retriever, qa_chain)
 

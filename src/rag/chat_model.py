@@ -133,7 +133,7 @@ async def main(message: cl.Message):
     text_elements = []
 
     async for chunk in runnable.astream(
-        {"input": message.content},
+        {"input": message.content, "vectorstore": runnable.vectorstore},
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     ):
         if "input" in chunk:

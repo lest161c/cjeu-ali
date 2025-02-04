@@ -10,3 +10,4 @@ similarity_threshold: 0.8
 db_faiss_path: "vectorstore/db_faiss/"
 top_k: 50
 top_p: 0.95
+k: 3
